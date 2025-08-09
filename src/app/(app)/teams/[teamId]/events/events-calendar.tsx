@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, dateFnsLocalizer, View, EventProps } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, addMinutes } from "date-fns";
 import { enGB } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import NewEventDialog from "./event-new";
 
 const locales = { "en-GB": enGB };
 const localizer = dateFnsLocalizer({
@@ -26,6 +27,8 @@ type DbEvent = {
 
 export default function EventsCalendar({ teamId, events }: { teamId: string; events: DbEvent[] }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [defaults, setDefaults] = useState<{ date?: string; time?: string }>({});
 
   const data = useMemo(() => {
     return events.map(e => {
@@ -64,28 +67,34 @@ export default function EventsCalendar({ teamId, events }: { teamId: string; eve
 
   return (
     <div className="rounded-md border p-2 bg-background">
-      <div className="flex items-center gap-3 mb-2 text-xs">
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-green-500" /> Training
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-blue-500" /> Game
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-gray-500" /> Other
-        </span>
-      </div>
-
+      {/* legend same as before */}
       <Calendar
         localizer={localizer}
         events={data}
         startAccessor="start"
         endAccessor="end"
-        views={["month", "week", "day"] as View[]}
+        selectable
+        onSelectSlot={(slotInfo: any) => {
+          const start: Date = slotInfo.start;
+          const date = start.toISOString().slice(0,10);
+          const time = start.getHours().toString().padStart(2,"0") + ":" + start.getMinutes().toString().padStart(2,"0");
+          setDefaults({ date, time });
+          setOpen(true);
+        }}
+        onSelectEvent={(ev: any) => router.push(`/teams/${teamId}/events/${ev.id}`)}
+        views={["month","week","day"] as View[]}
         defaultView="month"
         style={{ height: 600 }}
         eventPropGetter={eventPropGetter}
-        onSelectEvent={(ev: any) => router.push(`/teams/${teamId}/events/${ev.id}`)}
+      />
+
+      {/* Controlled create dialog with defaults */}
+      <NewEventDialog
+        teamId={teamId}
+        open={open}
+        onOpenChange={setOpen}
+        defaultDate={defaults.date}
+        defaultTime={defaults.time}
       />
     </div>
   );

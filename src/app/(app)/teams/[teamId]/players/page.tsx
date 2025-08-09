@@ -1,6 +1,7 @@
 import { supabaseServer } from "@/lib/supabase-server";
 import NewPlayerDialog from "./player-new";
 import ImportPlayers from "./player-import";
+import PlayerCard from "./player-card";
 
 export default async function PlayersPage({ params }: { params: { teamId: string } }) {
   const sb = await supabaseServer();
@@ -25,14 +26,7 @@ export default async function PlayersPage({ params }: { params: { teamId: string
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {players!.map(p => (
-            <div key={p.id} className="border rounded-lg p-3">
-              <div className="font-medium">
-                {p.first_name} {p.last_name}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {p.position ?? "—"} {p.jersey ? `· #${p.jersey}` : ""}
-              </div>
-            </div>
+            <PlayerCard key={p.id} teamId={params.teamId} player={p} />
           ))}
         </div>
       )}
