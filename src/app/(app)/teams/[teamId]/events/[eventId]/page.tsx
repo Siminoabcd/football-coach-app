@@ -2,35 +2,46 @@ import { notFound, redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import UpdateNotes from "./update-notes";
 import AttendanceTable from "./attendance-table";
+import PerformanceTable from "./performance-table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import EditEventDialog from "./event-edit";
 import { deleteEvent } from "../actions";
 
-export default async function EventDetail({
-  params,
-}: { params: { teamId: string; eventId: string } }) {
+export default async function EventDetail(
+  { params }: { params: Promise<{ teamId: string; eventId: string }> }
+) {
+  const { teamId, eventId } = await params;      // ✅ await params
   const sb = await supabaseServer();
 
+  // Event
   const { data: event } = await sb
     .from("events")
     .select("*")
-    .eq("id", params.eventId)
-    .eq("team_id", params.teamId)
+    .eq("id", eventId)
+    .eq("team_id", teamId)
     .single();
 
   if (!event) notFound();
 
+  // Players in team
   const { data: players } = await sb
     .from("players")
     .select("id,first_name,last_name")
-    .eq("team_id", params.teamId)
+    .eq("team_id", teamId)
     .order("last_name");
 
+  // Attendance for this event
   const { data: attendance } = await sb
     .from("attendance")
     .select("*")
-    .eq("event_id", params.eventId);
+    .eq("event_id", eventId);
+
+  // Performance stats for this event
+  const { data: perf } = await sb
+    .from("performance_stats")
+    .select("player_id,goals,assists,minutes_played,rating,notes")
+    .eq("event_id", eventId);
 
   return (
     <div className="space-y-6">
@@ -47,7 +58,7 @@ export default async function EventDetail({
 
         <div className="flex items-center gap-2">
           <EditEventDialog
-            teamId={params.teamId}
+            teamId={teamId}
             event={{
               id: event.id,
               type: event.type,
@@ -61,8 +72,8 @@ export default async function EventDetail({
           <form
             action={async () => {
               "use server";
-              await deleteEvent(params.teamId, params.eventId);
-              redirect(`/teams/${params.teamId}/events`);
+              await deleteEvent(teamId, eventId);
+              redirect(`/teams/${teamId}/events`);
             }}
           >
             <Button variant="destructive" type="submit">Delete</Button>
@@ -72,23 +83,31 @@ export default async function EventDetail({
 
       {/* Notes */}
       <UpdateNotes
-        teamId={params.teamId}
-        eventId={params.eventId}
+        teamId={teamId}
+        eventId={eventId}
         notesPre={event.notes_pre ?? ""}
         notesPost={event.notes_post ?? ""}
       />
 
       {/* Attendance */}
       <AttendanceTable
-        teamId={params.teamId}
-        eventId={params.eventId}
+        teamId={teamId}
+        eventId={eventId}
         players={players ?? []}
         existing={attendance ?? []}
       />
 
-      {/* Back link (optional) */}
+      {/* Performance stats */}
+      <PerformanceTable
+        teamId={teamId}
+        eventId={eventId}
+        players={players ?? []}
+        existing={perf ?? []}
+      />
+
+      {/* Back link */}
       <div>
-        <Link href={`/teams/${params.teamId}/events`} className="underline">
+        <Link href={`/teams/${teamId}/events`} className="underline">
           ← Back to events
         </Link>
       </div>
