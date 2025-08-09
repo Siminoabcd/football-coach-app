@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { deletePlayer, updatePlayer } from "./actions";
+import Link from "next/link";
 
 export default function PlayerCard({
   teamId,
@@ -39,10 +40,10 @@ export default function PlayerCard({
 
   return (
     <div className="border rounded-lg p-3 flex items-center justify-between">
-      <div>
-        <div className="font-medium">{player.first_name} {player.last_name}</div>
+      <Link href={`/teams/${teamId}/players/${player.id}`} className="min-w-0">
+        <div className="font-medium truncate">{player.first_name} {player.last_name}</div>
         <div className="text-sm text-muted-foreground">{player.position ?? "—"} {player.jersey ? `· #${player.jersey}` : ""}</div>
-      </div>
+      </Link>
       <div className="flex gap-2">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button size="sm" variant="secondary">Edit</Button></DialogTrigger>

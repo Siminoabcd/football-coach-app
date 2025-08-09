@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { savePerformanceStats } from "./stats-actions";
@@ -69,7 +70,14 @@ export default function PerformanceTable({
           <tbody>
             {rows.map((r, i) => (
               <tr key={r.player_id} className="border-t">
-                <td className="p-2">{r.name}</td>
+                <td className="p-2">
+                    <Link
+                        href={`/teams/${teamId}/players/${r.player_id}`}
+                        className="underline underline-offset-2"
+                    >
+                        {r.name}
+                    </Link>
+                    </td>
                 <td className="p-2 w-20">
                   <Input
                     type="number"

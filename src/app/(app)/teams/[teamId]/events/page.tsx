@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase-server";
 import NewEventDialog from "./event-new";
-import EventsCalendar from "./events-calendar"; 
-import Link from "next/link";
+import EventsCalendar from "./events-calendar";
 
 function TypeBadge({ type }: { type: "training" | "game" | "other" }) {
   const cls =
@@ -17,22 +17,26 @@ function TypeBadge({ type }: { type: "training" | "game" | "other" }) {
   );
 }
 
-export default async function EventsPage({ params }: { params: { teamId: string } }) {
+export default async function EventsPage(
+  { params }: { params: Promise<{ teamId: string }> }
+) {
+  const { teamId } = await params;                 // ✅ await params
   const sb = await supabaseServer();
+
   const { data: events } = await sb
     .from("events")
     .select("id,type,date,start_time,title")
-    .eq("team_id", params.teamId)
+    .eq("team_id", teamId)                         // ✅ use var
     .order("date", { ascending: true });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold">Events</h3>
-        <NewEventDialog teamId={params.teamId} />
+        <NewEventDialog teamId={teamId} />         {/* ✅ use var */}
       </div>
 
-      <EventsCalendar teamId={params.teamId} events={events ?? []} />
+      <EventsCalendar teamId={teamId} events={events ?? []} /> {/* ✅ use var */}
 
       <div className="space-y-2">
         <h4 className="font-medium">List</h4>
@@ -42,12 +46,17 @@ export default async function EventsPage({ params }: { params: { teamId: string 
           <ul className="space-y-2">
             {events!.map(e => (
               <li key={e.id} className="border rounded p-3">
-                <Link href={`/teams/${params.teamId}/events/${e.id}`} className="flex items-center justify-between gap-2">
+                <Link
+                  href={`/teams/${teamId}/events/${e.id}`}      // ✅ use var
+                  className="flex items-center justify-between gap-2"
+                >
                   <div className="flex items-center gap-2">
                     <TypeBadge type={e.type as any} />
                     <span className="capitalize">{e.title ? e.title : e.type}</span>
                   </div>
-                  <span className="text-sm text-muted-foreground">{e.date} {e.start_time ?? ""}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {e.date} {e.start_time ?? ""}
+                  </span>
                 </Link>
               </li>
             ))}

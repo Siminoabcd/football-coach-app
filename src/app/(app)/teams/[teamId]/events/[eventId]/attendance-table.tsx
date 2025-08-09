@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { saveAttendance } from "./attendance-actions";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const statuses = ["present", "late", "injured", "absent"] as const;
@@ -59,7 +60,14 @@ export default function AttendanceTable({
           <tbody>
             {rows.map((r, i) => (
               <tr key={r.player_id} className="border-t">
-                <td className="p-2">{r.name}</td>
+                <td className="p-2">
+                  <Link
+                    href={`/teams/${teamId}/players/${r.player_id}`}
+                    className="underline underline-offset-2"
+                  >
+                    {r.name}
+                  </Link>
+                </td>
                 <td className="p-2">
                   <select
                     value={r.status}
