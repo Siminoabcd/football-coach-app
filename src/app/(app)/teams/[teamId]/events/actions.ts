@@ -4,23 +4,27 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase-server";
 
-const UpdateEventSchema = z.object({
-  id: z.string().uuid(),
+// CREATE: no id required
+const CreateEventSchema = z.object({
   team_id: z.string().uuid(),
-  type: z.enum(["training","game","other"]),
-  date: z.string().min(1),
-  start_time: z.string().optional(),
-  title: z.string().optional(),
+  type: z.enum(["training", "game", "other"]),
+  date: z.string().min(1),                 // yyyy-mm-dd
+  start_time: z.string().optional().nullable(), // HH:mm or null
+  title: z.string().optional().nullable(),
 });
 
+// UPDATE: requires id
+const UpdateEventSchema = CreateEventSchema.extend({
+  id: z.string().uuid(),
+});
 
 export async function createEvent(formData: FormData) {
-  const parsed = UpdateEventSchema.safeParse({
+  const parsed = CreateEventSchema.safeParse({
     team_id: formData.get("team_id"),
     type: formData.get("type"),
     date: formData.get("date"),
-    start_time: (formData.get("start_time") || undefined) as string | undefined,
-    title: (formData.get("title") || undefined) as string | undefined,
+    start_time: (formData.get("start_time") as string) || null,
+    title: (formData.get("title") as string) || null,
   });
   if (!parsed.success) return { ok: false, error: "Invalid data" };
 
@@ -34,7 +38,11 @@ export async function createEvent(formData: FormData) {
 
 export async function updateEvent(formData: FormData) {
   const data = Object.fromEntries(formData);
-  const parsed = UpdateEventSchema.safeParse(data);
+  const parsed = UpdateEventSchema.safeParse({
+    ...data,
+    start_time: data.start_time || null,
+    title: data.title || null,
+  });
   if (!parsed.success) return { ok: false, error: "Invalid data" };
 
   const sb = await supabaseServer();
@@ -43,13 +51,14 @@ export async function updateEvent(formData: FormData) {
     .update({
       type: parsed.data.type,
       date: parsed.data.date,
-      start_time: parsed.data.start_time || null,
-      title: parsed.data.title || null,
+      start_time: parsed.data.start_time,
+      title: parsed.data.title,
     })
     .eq("id", parsed.data.id)
     .eq("team_id", parsed.data.team_id);
 
   if (error) return { ok: false, error: error.message };
+
   revalidatePath(`/teams/${parsed.data.team_id}/events/${parsed.data.id}`);
   revalidatePath(`/teams/${parsed.data.team_id}/events`);
   return { ok: true };
