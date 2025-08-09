@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import UpdateNotes from "./update-notes";
 import AttendanceTable from "./attendance-table";
+import Link from "next/link";
 
 export default async function EventDetail({ params }: { params: { teamId: string, eventId: string } }) {
   const sb = await supabaseServer();
@@ -31,9 +32,19 @@ export default async function EventDetail({ params }: { params: { teamId: string
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold capitalize">{event.type} {event.title ? `· ${event.title}` : ""}</h3>
-        <div className="text-sm text-muted-foreground">{event.date} {event.start_time ?? ""}</div>
+        <h3 className="text-xl font-semibold capitalize">
+          {event.type} {event.title ? `· ${event.title}` : ""}
+        </h3>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div>{event.date} {event.start_time ?? ""}</div>
+          <Link
+            href={`/teams/${params.teamId}/events/${params.eventId}/print`}
+            className="underline"
+          >
+            Print plan
+          </Link>
       </div>
+    </div>
 
       <UpdateNotes
         teamId={params.teamId}
