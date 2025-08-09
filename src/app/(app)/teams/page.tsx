@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase-server";
+import Link from "next/link";
 import NewTeamForm from "./new-team-form"
 
 export default async function TeamsPage() {
@@ -20,11 +21,13 @@ export default async function TeamsPage() {
       ) : (
         <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams.map((t) => (
-            <li key={t.id} className="border rounded-lg p-4">
-              <div className="font-medium">{t.name}</div>
-              <div className="text-sm text-muted-foreground">{t.season ?? "—"}</div>
+            <li key={t.id} className="border rounded-lg p-4 hover:bg-accent/30 transition">
+                <Link href={`/teams/${t.id}`} className="block">
+                <div className="font-medium">{t.name}</div>
+                <div className="text-sm text-muted-foreground">{t.season ?? "—"}</div>
+                </Link>
             </li>
-          ))}
+            ))}
         </ul>
       )}
     </div>

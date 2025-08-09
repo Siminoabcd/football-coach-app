@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen grid grid-cols-[220px_1fr]">
       <aside className="border-r p-4 space-y-4">
-        <h1 className="font-bold">CoachBoard</h1>
+        <h1 className="font-bold">Modern Coach</h1>
         <nav className="flex flex-col gap-2">
           <Link href="/teams" className="hover:underline">Teams</Link>
         </nav>
