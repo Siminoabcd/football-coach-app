@@ -76,11 +76,15 @@ export default function EventsCalendar({ teamId, events }: { teamId: string; eve
         selectable
         onSelectSlot={(slotInfo: any) => {
           const start: Date = slotInfo.start;
-          const date = start.toISOString().slice(0,10);
-          const time = start.getHours().toString().padStart(2,"0") + ":" + start.getMinutes().toString().padStart(2,"0");
+          const date = format(start, "yyyy-MM-dd"); // <-- local-safe
+          const time =
+            start.getHours().toString().padStart(2, "0") +
+            ":" +
+            start.getMinutes().toString().padStart(2, "0");
           setDefaults({ date, time });
           setOpen(true);
         }}
+        
         onSelectEvent={(ev: any) => router.push(`/teams/${teamId}/events/${ev.id}`)}
         views={["month","week","day"] as View[]}
         defaultView="month"

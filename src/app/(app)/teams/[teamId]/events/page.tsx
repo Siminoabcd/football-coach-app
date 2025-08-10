@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase-server";
 import NewEventDialog from "./event-new";
 import EventsCalendar from "./events-calendar";
+import TeamStats from "./team-stats";
 
 function TypeBadge({ type }: { type: "training" | "game" | "other" }) {
   const cls =
@@ -33,8 +34,25 @@ export default async function EventsPage(
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold">Events</h3>
-        <NewEventDialog teamId={teamId} />         {/* ✅ use var */}
+        <div className="flex gap-2">
+          <a
+            href={`/api/teams/${teamId}/export/performance`}
+            className="text-sm underline"
+          >
+            Export performance CSV
+          </a>
+          <a
+            href={`/api/teams/${teamId}/export/attendance`}
+            className="text-sm underline"
+          >
+            Export attendance CSV
+          </a>
+          <NewEventDialog teamId={teamId} />
+        </div>
       </div>
+
+
+      <TeamStats teamId={teamId} />
 
       <EventsCalendar teamId={teamId} events={events ?? []} /> {/* ✅ use var */}
 
