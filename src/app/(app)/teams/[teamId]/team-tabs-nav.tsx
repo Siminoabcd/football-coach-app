@@ -8,6 +8,7 @@ export default function TeamTabsNav({ teamId }: { teamId: string }) {
   const tabs = [
     { href: `/teams/${teamId}/players`, label: "Players" },
     { href: `/teams/${teamId}/events`,  label: "Calendar" },
+    { href: `/teams/${teamId}/stats`,   label: "Stats" },   // ⬅️ new
     { href: `/teams/${teamId}/settings`, label: "Settings" },
   ];
   return (
