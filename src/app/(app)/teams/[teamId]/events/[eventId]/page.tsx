@@ -7,14 +7,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import EditEventDialog from "./event-edit";
 import { deleteEvent } from "../actions";
+import EventDrills from "./ui/event-drills";
 
 export default async function EventDetail(
   { params }: { params: Promise<{ teamId: string; eventId: string }> }
 ) {
-  const { teamId, eventId } = await params;      // ✅ await params
+  const { teamId, eventId } = await params; // ✅ awaited
   const sb = await supabaseServer();
 
-  // Event
   const { data: event } = await sb
     .from("events")
     .select("*")
@@ -24,20 +24,17 @@ export default async function EventDetail(
 
   if (!event) notFound();
 
-  // Players in team
   const { data: players } = await sb
     .from("players")
     .select("id,first_name,last_name")
     .eq("team_id", teamId)
     .order("last_name");
 
-  // Attendance for this event
   const { data: attendance } = await sb
     .from("attendance")
     .select("*")
     .eq("event_id", eventId);
 
-  // Performance stats for this event
   const { data: perf } = await sb
     .from("performance_stats")
     .select("player_id,goals,assists,minutes_played,rating,notes")
@@ -54,6 +51,13 @@ export default async function EventDetail(
           <div className="text-sm text-muted-foreground">
             {event.date} {event.start_time ?? ""}
           </div>
+          <Link
+            href={`/teams/${teamId}/events/${eventId}/print`}  // ⬅️ use locals
+            className="text-sm underline"
+            target="_blank"
+          >
+            Print session
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
@@ -67,8 +71,6 @@ export default async function EventDetail(
               title: event.title,
             }}
           />
-
-          {/* Delete → redirect back to events list */}
           <form
             action={async () => {
               "use server";
@@ -104,6 +106,9 @@ export default async function EventDetail(
         players={players ?? []}
         existing={perf ?? []}
       />
+
+      {/* Drills */}
+      <EventDrills teamId={teamId} eventId={eventId} />  {/* ⬅️ use locals */}
 
       {/* Back link */}
       <div>
