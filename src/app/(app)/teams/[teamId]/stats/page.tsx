@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import StatsTable from "./stats-table";
+import TeamRatingTrend from "./team-rating-trend";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,7 @@ export default async function TeamStatsPage(
           {team.name} · {team.season ?? "Season"}
         </p>
       </div>
+      <TeamRatingTrend teamId={teamId} />
 
       <StatsTable teamId={teamId} rows={rows} />
     </div>
