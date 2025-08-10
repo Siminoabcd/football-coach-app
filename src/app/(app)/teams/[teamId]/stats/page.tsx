@@ -96,6 +96,13 @@ export default async function TeamStatsPage(
           {team.name} · {team.season ?? "Season"}
         </p>
       </div>
+      <div className="flex items-center justify-end">
+        <a href={`/api/teams/${teamId}/export/stats`} className="text-sm underline">
+            Export team stats CSV
+        </a>
+      </div>
+    
+
       <TeamRatingTrend teamId={teamId} />
 
       <StatsTable teamId={teamId} rows={rows} />
