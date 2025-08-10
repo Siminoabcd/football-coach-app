@@ -91,6 +91,15 @@ export default async function PlayerStatsPage(
 
   return (
     <div className="space-y-6">
+        <div className="flex items-center justify-end gap-3">
+            <a href={`/api/teams/${teamId}/players/${playerId}/export/performance`} className="text-sm underline">
+                Export performance CSV
+            </a>
+            <a href={`/api/teams/${teamId}/players/${playerId}/export/attendance`} className="text-sm underline">
+                Export attendance CSV
+            </a>
+        </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="border rounded-lg p-4">
