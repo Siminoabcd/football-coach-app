@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase-server";
+import Sparkline from "@/components/sparkline";
 
 type PerfRow = {
   event_id: string;
@@ -67,6 +68,15 @@ export default async function PlayerProfilePage(
     },
     { goals: 0, assists: 0, minutes: 0, ratingSum: 0, ratingCount: 0 }
   );
+
+  const ratingSeries = [...perfRows]
+    .map((r) => ({ date: eventsMap.get(r.event_id)?.date ?? "", value: r.rating }))
+    .filter((p) => typeof p.value === "number" && p.date) // keep only rated with date
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const ratingValues = ratingSeries.map((p) => Number(p.value));
+  const firstDate = ratingSeries[0]?.date ?? null;
+  const lastDate = ratingSeries[ratingSeries.length - 1]?.date ?? null;
   const avgRating = totals.ratingCount ? (totals.ratingSum / totals.ratingCount) : null;
 
   const totalAttend = (attend ?? []).length;
@@ -117,6 +127,30 @@ export default async function PlayerProfilePage(
           <div className="text-2xl font-semibold">{avgRating?.toFixed(1) ?? "—"}</div>
         </div>
       </div>
+      
+      {/* Rating trend */}
+
+      {ratingValues.length > 0 && (
+        <div className="border rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">Rating trend</div>
+            <div className="text-xs text-muted-foreground">
+              {firstDate} → {lastDate}
+            </div>
+          </div>
+          <Sparkline
+            values={ratingValues}
+            width={320}
+            height={48}
+            strokeWidth={2}
+            ariaLabel="Player rating trend over time"
+          />
+          <div className="text-xs text-muted-foreground">
+            min {Math.min(...ratingValues).toFixed(1)} · max {Math.max(...ratingValues).toFixed(1)}
+          </div>
+        </div>
+      )}
+
 
       {/* Attendance & RPE */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
