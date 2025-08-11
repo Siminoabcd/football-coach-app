@@ -2,30 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Dumbbell, CalendarDays, BarChart3 } from "lucide-react";
+import {
+  CalendarDays,       // Events
+  CheckSquare,        // Attendance
+  User,               // Info
+  BarChart3,          // Stats
+} from "lucide-react";
 
 type Item = { href: string; label: string; icon: React.ElementType };
 
 const items: Item[] = [
-  { href: "/teams",  label: "Teams",  icon: Users },
-  { href: "/drills", label: "Drills", icon: Dumbbell },
-  { href: "/me", label: "My Area", icon: CalendarDays },
-  // future:
-  // { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  // { href: "/stats",    label: "Insights", icon: BarChart3 },
+  { href: "/me/calendar",   label: "Events",     icon: CalendarDays },
+  { href: "/me/attendance", label: "Attendance", icon: CheckSquare  },
+  { href: "/me/info",       label: "My Info",    icon: User         },
+  { href: "/me/stats",      label: "My Stats",   icon: BarChart3    },
 ];
 
-export default function SidebarNav() {
+export default function PlayerSidebarNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="mt-3 flex flex-col gap-1">
+    <nav className="grid gap-1">
       {items.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
           <Link
             key={href}
             href={href}
+            aria-current={active ? "page" : undefined}
             className={[
               "flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
               active
