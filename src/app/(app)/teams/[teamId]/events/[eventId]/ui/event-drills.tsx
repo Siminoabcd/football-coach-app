@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,30 +24,80 @@ export default function EventDrills({ teamId, eventId }: { teamId: string; event
   const [initial, setInitial] = useState<DrillLite[] | null>(null);
   const [pending, start] = useTransition();
 
-  // load attached drills (SSR alternative: pass as prop)
+  // Single source of truth refetch (no cache)
+  async function refetch() {
+    const res = await fetch(`/api/events/${eventId}/drills`, { cache: "no-store" });
+    const json = await res.json();
+    return json.drills as DrillLite[];
+  }
+
+  // load attached drills on mount/event change
   useEffect(() => {
     (async () => {
-      const res = await fetch(`/api/events/${eventId}/drills`).then(r => r.json());
-      setInitial(res.drills as DrillLite[]);
+      const drills = await refetch();
+      setInitial(drills);
     })();
   }, [eventId]);
 
-  const [optimistic, setOptimistic] = useOptimistic(initial ?? []);
+  const [optimistic, setOptimistic] = useOptimistic<DrillLite[]>(initial ?? []);
 
   async function onRemove(id: string) {
-    setOptimistic(d => d.filter(x => x.id !== id));
-    const res = await fetch(`/api/events/${eventId}/drills/${id}`, { method: "DELETE" });
-    if (!res.ok) toast.error("Failed to remove drill");
+    // optimistic
+    start(() => setOptimistic(d => d.filter(x => x.id !== id)));
+
+    // server
+    const res = await fetch(`/api/events/${eventId}/drills/${id}`, { method: "DELETE", cache: "no-store" });
+    if (!res.ok) {
+      toast.error("Failed to remove drill");
+      // best-effort resync if server failed
+      start(async () => {
+        const fresh = await refetch();
+        setInitial(fresh);
+        setOptimistic(fresh);
+      });
+      return;
+    }
+
+    // canonical sync
+    start(async () => {
+      const fresh = await refetch();
+      setInitial(fresh);
+      setOptimistic(fresh);
+    });
   }
 
   async function onReorder(ids: string[]) {
-    setOptimistic(d => ids.map((id, i) => ({ ...(d.find(x => x.id === id)!), order_index: i })));
+    // optimistic
+    start(() => {
+      setOptimistic(d =>
+        ids.map((id, i) => ({ ...(d.find(x => x.id === id)!), order_index: i }))
+      );
+    });
+
+    // server
     const res = await fetch(`/api/events/${eventId}/drills/reorder`, {
       method: "POST",
       body: JSON.stringify({ orderedDrillIds: ids }),
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
     });
-    if (!res.ok) toast.error("Failed to reorder");
+    if (!res.ok) {
+      toast.error("Failed to reorder");
+      // resync on failure
+      start(async () => {
+        const fresh = await refetch();
+        setInitial(fresh);
+        setOptimistic(fresh);
+      });
+      return;
+    }
+
+    // canonical sync
+    start(async () => {
+      const fresh = await refetch();
+      setInitial(fresh);
+      setOptimistic(fresh);
+    });
   }
 
   return (
@@ -58,9 +108,12 @@ export default function EventDrills({ teamId, eventId }: { teamId: string; event
           teamId={teamId}
           eventId={eventId}
           onAdded={async () => {
-            const res = await fetch(`/api/events/${eventId}/drills`).then(r => r.json());
-            setInitial(res.drills);
-            setOptimistic(res.drills);
+            // refresh list after successful add
+            start(async () => {
+              const fresh = await refetch();
+              setInitial(fresh);
+              setOptimistic(fresh);
+            });
           }}
         />
       </div>
@@ -74,8 +127,7 @@ export default function EventDrills({ teamId, eventId }: { teamId: string; event
               <button
                 className="cursor-grab pt-0.5"
                 onMouseDown={(e) => {
-                  // tiny manual reorder: swap with previous/next on alt/ctrl
-                  // (for production use dnd-kit; here we keep deps zero)
+                  // placeholder for DnD (keep deps zero)
                   if (e.altKey || e.ctrlKey || e.metaKey) return;
                 }}
                 title="Drag to reorder (use buttons below)"
@@ -107,7 +159,8 @@ export default function EventDrills({ teamId, eventId }: { teamId: string; event
                 {/* simple reorder controls */}
                 <div className="mt-2 flex gap-1">
                   <Button
-                    size="sm" variant="outline"
+                    size="sm"
+                    variant="outline"
                     onClick={() => {
                       const ids = optimistic.map(x => x.id);
                       if (idx === 0) return;
@@ -118,7 +171,8 @@ export default function EventDrills({ teamId, eventId }: { teamId: string; event
                     Up
                   </Button>
                   <Button
-                    size="sm" variant="outline"
+                    size="sm"
+                    variant="outline"
                     onClick={() => {
                       const ids = optimistic.map(x => x.id);
                       if (idx === ids.length - 1) return;
@@ -157,7 +211,7 @@ function AddDrillsDialog({
     if (!open) return;
     const t = setTimeout(async () => {
       const url = query ? `/api/drills/search?q=${encodeURIComponent(query)}` : `/api/drills/search`;
-      const res = await fetch(url).then(r => r.json());
+      const res = await fetch(url, { cache: "no-store" }).then(r => r.json());
       setRows(res.drills as DrillLite[]);
     }, 200);
     return () => clearTimeout(t);
@@ -171,6 +225,7 @@ function AddDrillsDialog({
         method: "POST",
         body: JSON.stringify({ drillIds: ids }),
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
       });
       if (res.ok) {
         toast.success("Drills added");
