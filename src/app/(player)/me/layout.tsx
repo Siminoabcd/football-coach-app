@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/theme-toggle";
 import PlayerSidebarNav from "@/components/player-sidebar-nav";
+import LogoIcon from "@/components/logo-icon";
 
 async function SignOutButton() {
   "use server";
@@ -28,7 +29,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
 
   const player = row;
   let teamName = (row as any)?.teams?.name ?? null;
-  
+
   if (player?.team_id) {
     const t = await sb.from("teams").select("name").eq("id", player.team_id).maybeSingle();
     teamName = t.data?.name ?? null;
@@ -41,7 +42,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
         {/* Brand / header */}
         <div className="p-4 border-b">
           <Link href="/me" className="group inline-flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/90 to-primary/60 shadow-inner" />
+            <LogoIcon size={32} />
             <div className="leading-tight">
               <div className="font-semibold tracking-tight">Modern Coach</div>
               <div className="text-xs text-muted-foreground group-hover:text-foreground/80 transition">

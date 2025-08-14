@@ -7,7 +7,7 @@ export default async function LoginPage() {
   const { data: { user } } = await sb.auth.getUser();
 
   if (user) {
-    // If this user is linked to a Player, go to /me, else to /teams
+    // If linked to a player -> /me, else -> /teams
     const { data: player } = await sb
       .from("players")
       .select("id")

@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/theme-toggle";
 import SidebarNav from "@/components/sidebar-nav";
+import LogoIcon from "@/components/logo-icon";
 
 async function SignOutButton() {
   "use server";
@@ -24,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Brand / header */}
         <div className="p-4 border-b">
           <Link href="/teams" className="group inline-flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/90 to-primary/60 shadow-inner" />
+           <LogoIcon size={32} />
             <div className="leading-tight">
               <div className="font-semibold tracking-tight">Modern Coach</div>
               <div className="text-xs text-muted-foreground group-hover:text-foreground/80 transition">
