@@ -17,14 +17,18 @@ export default async function MeLayout({ children }: { children: React.ReactNode
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect("/login");
 
-  // Pull the linked player (if any) to display name + team
-  const { data: player } = await sb
-    .from("players")
-    .select("id, first_name, last_name, team_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Fetch the player linked to this user
+  // and their team name if available
 
-  let teamName: string | null = null;
+  const { data: row } = await sb
+  .from("players")
+  .select("id, first_name, last_name, team_id, teams(name)")
+  .eq("user_id", user.id)
+  .maybeSingle();
+
+  const player = row;
+  let teamName = (row as any)?.teams?.name ?? null;
+  
   if (player?.team_id) {
     const t = await sb.from("teams").select("name").eq("id", player.team_id).maybeSingle();
     teamName = t.data?.name ?? null;

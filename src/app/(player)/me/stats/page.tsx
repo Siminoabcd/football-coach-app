@@ -12,21 +12,39 @@ export default async function MyStats() {
   if (!user) redirect("/login");
   if (!player) return <p className="text-sm text-muted-foreground">Not linked to a player yet.</p>;
 
-  const { data: perf } = await sb
+  const { data: perf, error } = await sb
     .from("performance_stats")
-    .select("goals,assists,minutes_played,rating,event_id")
+    .select("goals,assists,minutes_played,rating,created_at")
     .eq("player_id", player.id)
-    .order("event_id", { ascending: true });
+    .order("created_at", { ascending: true });
 
-  const totals = (perf ?? []).reduce((a,p) => ({
-    goals: a.goals + (p.goals ?? 0),
-    assists: a.assists + (p.assists ?? 0),
-    minutes: a.minutes + (p.minutes_played ?? 0),
-    ratings: p.rating != null ? [...a.ratings, p.rating] : a.ratings,
-  }), {goals:0,assists:0,minutes:0,ratings:[] as number[]});
+  if (error) {
+    return <pre className="text-xs text-red-600 whitespace-pre-wrap">Stats error: {error.message}</pre>;
+  }
 
-  const avgRating = totals.ratings.length ? (totals.ratings.reduce((x,y)=>x+y,0)/totals.ratings.length).toFixed(2) : "—";
-  const trend = (perf ?? []).map((p,i) => ({ x: i+1, y: p.rating ?? 0 }));
+  const rows = (perf ?? []).map((p: any) => ({
+    goals: Number(p.goals ?? 0),
+    assists: Number(p.assists ?? 0),
+    minutes: Number(p.minutes_played ?? 0),
+    rating: p.rating == null ? null : Number(p.rating),
+  }));
+
+  const totals = rows.reduce(
+    (a, p) => ({
+      goals: a.goals + p.goals,
+      assists: a.assists + p.assists,
+      minutes: a.minutes + p.minutes,
+      ratings: p.rating == null ? a.ratings : [...a.ratings, p.rating],
+    }),
+    { goals: 0, assists: 0, minutes: 0, ratings: [] as number[] }
+  );
+
+  const avgRating =
+    totals.ratings.length
+      ? (totals.ratings.reduce((x, y) => x + y, 0) / totals.ratings.length).toFixed(2)
+      : "—";
+
+  const trend = rows.map((p, i) => ({ x: i + 1, y: p.rating ?? 0 }));
 
   return (
     <div className="space-y-4">

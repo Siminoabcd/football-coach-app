@@ -1,62 +1,61 @@
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import { getMe, upsertAvailability } from "../actions";
-import { Button } from "@/components/ui/button";
+import RsvpList from "./rsvp-list";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+type Status = "coming" | "maybe" | "out";
 
 export default async function MyCalendar() {
   const sb = await supabaseServer();
   const { user, player } = await getMe();
   if (!user) redirect("/login");
-  if (!player) return <p className="text-sm text-muted-foreground">Ask your coach to link your account to a player.</p>;
+  if (!player) {
+    return <p className="text-sm text-muted-foreground">Ask your coach to link your account to a player.</p>;
+  }
 
-  const { data: events } = await sb
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: events, error: eventsErr } = await sb
     .from("events")
     .select("id,title,type,date,start_time")
     .eq("team_id", player.team_id)
-    .gte("date", new Date().toISOString().slice(0,10))
+    .gte("date", today)
     .order("date", { ascending: true });
 
-  const { data: avail } = await sb
+  if (eventsErr) {
+    return <pre className="text-xs text-red-600 whitespace-pre-wrap">Events error: {eventsErr.message}</pre>;
+  }
+
+  const { data: avail, error: availErr } = await sb
     .from("availability")
-    .select("event_id,status,note")
+    .select("event_id,status")
     .eq("player_id", player.id);
 
-  const amap = new Map((avail ?? []).map(a => [a.event_id, a]));
+  if (availErr) {
+    return <pre className="text-xs text-red-600 whitespace-pre-wrap">Availability error: {availErr.message}</pre>;
+  }
 
+  const initialStatuses = Object.fromEntries(
+    (avail ?? []).map(a => [a.event_id, a.status as Status])
+  ) as Record<string, Status | undefined>;
+
+  // Pass the server action down – the client component will call it and update optimistically
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Upcoming events</h3>
-      <div className="space-y-2">
-        {(events ?? []).map(e => {
-          const a = amap.get(e.id);
-          return (
-            <div key={e.id} className="flex items-center justify-between border rounded p-3">
-              <div>
-                <div className="font-medium">{e.title || e.type}</div>
-                <div className="text-xs text-muted-foreground">{e.date} {e.start_time ?? ""}</div>
-                <div className="text-xs">RSVP: <b>{a?.status ?? "—"}</b></div>
-              </div>
-              <div className="flex gap-2">
-                <form action={async () => { "use server"; await upsertAvailability(e.id, "coming"); }}>
-                  <Button variant={a?.status==="coming" ? "default":"outline"} size="sm">Coming</Button>
-                </form>
-                <form action={async () => { "use server"; await upsertAvailability(e.id, "maybe"); }}>
-                  <Button variant={a?.status==="maybe" ? "default":"outline"} size="sm">Maybe</Button>
-                </form>
-                <form action={async () => { "use server"; await upsertAvailability(e.id, "out"); }}>
-                  <Button variant={a?.status==="out" ? "default":"outline"} size="sm">Out</Button>
-                </form>
-              </div>
-            </div>
-          );
-        })}
-        {(!events || events.length === 0) && (
-          <p className="text-sm text-muted-foreground">No upcoming events yet.</p>
-        )}
-      </div>
+      <RsvpList
+        events={(events ?? []).map(e => ({
+          id: e.id,
+          title: e.title || e.type,
+          date: String(e.date),
+          start_time: e.start_time ?? null,
+        }))}
+        initialStatuses={initialStatuses}
+        onSet={upsertAvailability}
+      />
     </div>
   );
 }
