@@ -9,7 +9,6 @@ type Item = { href: string; label: string; icon: React.ElementType };
 const items: Item[] = [
   { href: "/teams",  label: "Teams",  icon: Users },
   { href: "/drills", label: "Drills", icon: Dumbbell },
-  { href: "/me", label: "My Area", icon: CalendarDays },
   // future:
   // { href: "/calendar", label: "Calendar", icon: CalendarDays },
   // { href: "/stats",    label: "Insights", icon: BarChart3 },

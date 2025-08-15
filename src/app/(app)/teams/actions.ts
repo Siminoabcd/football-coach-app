@@ -33,3 +33,13 @@ export async function createTeam(formData: FormData) {
   revalidatePath("/teams");
   return { ok: true };
 }
+
+export async function deleteTeam(teamId: string) {
+  const sb = await supabaseServer();
+
+  const { error } = await sb.rpc("delete_team", { _team_id: teamId });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/teams");
+  return { ok: true };
+}
