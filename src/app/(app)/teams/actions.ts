@@ -43,3 +43,11 @@ export async function deleteTeam(teamId: string) {
   revalidatePath("/teams");
   return { ok: true };
 }
+
+export async function rotateIcsToken(teamId: string) {
+  const sb = await supabaseServer();
+  const { data, error } = await sb.rpc("rotate_team_ics_token", { _team_id: teamId });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/teams/${teamId}`);
+  return { ok: true, token: data as string };
+}
