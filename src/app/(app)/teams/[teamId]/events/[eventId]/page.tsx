@@ -1,16 +1,20 @@
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/button";
-import RSVPCounts from "./ui/rsvp-counts";
+import RSVPCounts from "./ui/rsvp-counts-live";
 import NotesCard from "./ui/notes-card";
 import AttendanceBulk from "./ui/attendance-bulk";
 import EventDrills from "./ui/event-drills";
 import { saveNotes, upsertAttendanceBulk } from "./actions";
+import AttendanceSummaryLive from "./ui/attendance-summar-live";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function EventPage({ params }: { params: { teamId: string; eventId: string } }) {
+  type AttStatus = "present" | "late" | "injured" | "absent";
+  type RsvpStatus = "coming" | "maybe" | "out";
+  
   const { teamId, eventId } = params;
   const sb = await supabaseServer();
 
@@ -65,6 +69,13 @@ export default async function EventPage({ params }: { params: { teamId: string; 
   const summary = { present: 0, late: 0, injured: 0, absent: 0 } as Record<string, number>;
   (attRows ?? []).forEach(r => { summary[r.status] = (summary[r.status] ?? 0) + 1; });
 
+  const initialAttSummary: Record<AttStatus, number> = {
+    present: 0, late: 0, injured: 0, absent: 0,
+  };
+  ((attRows ?? []) as Array<{ status: AttStatus }>).forEach((r) => {
+    initialAttSummary[r.status] += 1;
+  });
+
   // Server actions wrapped to bind params
   async function onSaveNotes(fd: FormData) {
     "use server";
@@ -77,6 +88,11 @@ export default async function EventPage({ params }: { params: { teamId: string; 
     "use server";
     return await upsertAttendanceBulk(teamId, eventId, rows as any[]);
   }
+
+  const initialCounts: Record<RsvpStatus, number> = { coming: 0, maybe: 0, out: 0 };
+  ((rsvps ?? []) as Array<{ status: RsvpStatus }>).forEach((r) => {
+    initialCounts[r.status] += 1;
+  });
 
   return (
     <div className="space-y-6">
@@ -94,7 +110,7 @@ export default async function EventPage({ params }: { params: { teamId: string; 
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <RSVPCounts eventId={event.id} />
+          <RSVPCounts eventId={event.id} initial={initialCounts} />
           {/* quick actions (placeholders hook into your other pages if any) */}
           <Button asChild variant="outline" size="sm">
             <a href={`#attendance`}>Record attendance</a>
@@ -106,11 +122,15 @@ export default async function EventPage({ params }: { params: { teamId: string; 
       </div>
 
       {/* Summary cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <CardStat label="Drills" value={String(drillCount)} hint={`${totalMin} min`} />
-        <CardStat label="Present" value={String(summary.present)} />
-        <CardStat label="Late" value={String(summary.late)} />
-        <CardStat label="Absent" value={String(summary.absent)} hint={summary.injured ? `Injured ${summary.injured}` : undefined} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:g  rid-cols-4">
+        <div className="rounded-lg border bg-card p-3">
+          <div className="text-xs text-muted-foreground">Drills</div>
+          <div className="text-2xl font-semibold">{drillCount}</div>
+          <div className="text-xs text-muted-foreground">{totalMin} min</div>
+        </div>
+        <div className="sm:col-span-1 lg:col-span-3">
+          <AttendanceSummaryLive eventId={event.id} initial={initialAttSummary as any} />
+        </div>
       </div>
 
       {/* Notes */}
@@ -128,11 +148,12 @@ export default async function EventPage({ params }: { params: { teamId: string; 
 
       {/* Attendance bulk editor */}
       <section id="attendance" className="space-y-3">
-        <AttendanceBulk
-          players={(players ?? []) as any}
-          initialRows={(attRows ?? []) as any}
-          onSave={onSaveAttendance}
-        />
+      <AttendanceBulk
+        players={(players ?? []) as any}
+        initialRows={(attRows ?? []) as any}
+        onSave={onSaveAttendance}
+        eventId={event.id}
+      />
       </section>
 
       {/* RSVP list */}

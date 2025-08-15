@@ -22,22 +22,34 @@ export async function getMe() {
   return { user, player, teams };
 }
 
-export async function upsertAvailability(eventId: string, status: "coming"|"maybe"|"out", note?: string) {
-  const sb = await supabaseServer();
-  const me = await getMe();
-  if (!me.player) return { ok: false, error: "Not linked to a player." };
-
-  const { error } = await sb.from("availability").upsert({
-    team_id: me.player.team_id,
-    event_id: eventId,
-    player_id: me.player.id,
-    status,
-    note: note ?? null,
-  });
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/me/calendar");
-  return { ok: true };
-}
+export async function upsertAvailability(eventId: string, status: "coming" | "maybe" | "out") {
+    const sb = await supabaseServer();
+    const { user, player } = await getMe();
+    if (!user || !player) return { ok: false, error: "Not linked to a player." };
+  
+    // Get the event's team to ensure team_id is correct
+    const { data: evt, error: evtErr } = await sb
+      .from("events")
+      .select("team_id")
+      .eq("id", eventId)
+      .maybeSingle();
+  
+    if (evtErr || !evt) return { ok: false, error: "Event not found." };
+    // (Optional) safety: make sure the player belongs to this team
+    if (evt.team_id !== player.team_id) {
+      return { ok: false, error: "This event is not for your team." };
+    }
+  
+    const { error } = await sb.from("availability").upsert({
+      team_id: evt.team_id,
+      event_id: eventId,
+      player_id: player.id,
+      status,
+    });
+  
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }
 
 export async function updateMyInfo(form: {
     date_of_birth?: string | null;
